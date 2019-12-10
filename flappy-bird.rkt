@@ -1,99 +1,4204 @@
-;; The first three lines of this file were inserted by DrRacket. They record metadata
-;; about the language level of this file in a form that our tools can easily process.
-#reader(lib "htdp-intermediate-lambda-reader.ss" "lang")((modname flappy-bird) (read-case-sensitive #t) (teachpacks ()) (htdp-settings #(#t constructor repeating-decimal #f #t none #f () #f)))
-(require 2htdp/image)
-(require 2htdp/universe)
+;; BASED ON Flappy Bird by Cory Calderone [https://github.com/corycalderone/flappybird]
 
-(define BG .)
+(require
+	2htdp/image
+)
+(require
+	2htdp/universe
+)
 
-(define FG .)
+; bird-y, ground-x, pipe-1-x, pipe-1-y, pipe-2-x, pipe-2-y, gravity, collision
+(define-struct
+	coords
+		[
+			by
+			gx
+			p1x
+			p1y
+			p2x
+			p2y
+			gravity
+			collision
+		]
+)
 
-(define PIPE-1 .)
-(define PIPE-2 .)
-;(define BIRD-IMG .)
-(define BIRD-IMG .)
+(define
+	IMG-NEW-HI-SCORE-X
+		183
+)
 
-(define BIRD-X 75) ; default x-position of the bird, it does not move horizontally (i.e., this is static.)
+(define
+	IMG-NEW-HI-SCORE-Y
+		260
+)
 
-(define PIPE-1-INIT-X 510) ; there are two sets of pipes moving on the "conveyor belt." this is the x for the first set...
-(define PIPE-1-INIT-Y 300) ; ...and here is the y...
-(define PIPE-2-INIT-X 2000) ; ... and the x for the second set...
-(define PIPE-2-INIT-Y 500) ; ...and the second set's y.
-(define RANDOM-LIMIT 250) ; upper bound randomly generating y-displacement for pipe heights
-(define RANDOM-ADDER 70) ; constant to be added to rand numbers
-(define X-DISP 5) ; increments by which we move the pipes
+(define
+	IMG-MEDAL-Y
+		259
+)
 
-; bird-y, ground-x, pipe-1-x, pipe-1-y, pipe-2-x, pipe-2-y
-(define-struct coords [by gx p1x p1y p2x p2y])
+(define
+	SCOREBOARD-SCORE-Y
+		237
+)
 
-(define (flappy-bird INIT-WINDOW)
-  (big-bang (make-coords 150 250 PIPE-1-INIT-X (+ (random RANDOM-LIMIT) RANDOM-ADDER) PIPE-2-INIT-X (+ (random RANDOM-LIMIT) RANDOM-ADDER)) ; [by gx p1x p1y p2x p2y]
-            [on-tick move-window]
-            [on-key move-bird]
-            [to-draw draw-window]))
+(define
+	LAST-PIPE-1-X-IN-SCREEN
+		510
+)
 
+(define
+	SCOREBOARD-HI-SCORE-Y
+		279
+)
 
-(define (move-bird coords ke)
-  (cond 
-    [(key=? ke "w") (make-coords (- (coords-by coords) 10) (ground-helper(coords-gx coords))
-                                 (coords-p1x coords)
-                                 (coords-p1y coords)
-                                 (coords-p2x coords)
-                                 (coords-p2y coords))]
+(define
+	SCOREBOARD-FONT-HEIGHT
+		28
+)
 
-    [(key=? ke "s")(make-coords (+ (coords-by coords) 10)(coords-gx coords)
-                                (coords-p1x coords)
-                                (coords-p1y coords)
-                                (coords-p2x coords)
-                                (coords-p2y coords))] 
-    
-    [else coords]))
+(define
+	CURRENT-FRAME
+		0
+)
 
-(define (move-window coords) ; on-tick
-  (cond
-    [(collision? coords) -1]
-    [else (make-coords (coords-by coords)
-                      (ground-helper (coords-gx coords))
-                      (pipe-helper/1 (coords-p1x coords))
-                      (randomize-y (coords-p1x coords) (coords-p1y coords))
-                      (pipe-helper/2 (coords-p2x coords) (coords-p1x coords))
-                      (randomize-y (coords-p2x coords) (coords-p2y coords)))]))
+(define
+	SCORE
+		0
+)
 
-(define (pipe-helper/1 x) ; on-tick/h
-  (if (= -50 x)
-      575
-      (- x X-DISP)))
+(define
+	HI-SCORE
+		0
+)
 
-(define (pipe-helper/2 x adder) ; on-tick/h
-  (if (= -50 x)
-      (+ 500 adder)
-      (- x X-DISP)))
+(define
+	GROUND-SURFACE
+		388 ;!; 400
+)
 
-(define (randomize-y x y)
-  (if (= -50 x)
-      (+ (random RANDOM-LIMIT) RANDOM-ADDER)
-      y))
-  
-(define (ground-helper x)
-  (if (= 0 x)
-      250
-      (- x X-DISP)))
+(define
+	DAY
+		#f
+)
 
-; (flappy-bird 0)
+(define
+	NEW-HI-SCORE
+		#f
+)
 
-(define PIPE-DISP 50)
+(define
+	SMW-MODE
+		#f
+)
 
-(define (collision? coords)
-   (or (= (- (coords-p1x coords) PIPE-DISP) BIRD-X)
-       (= (- (coords-p2x coords) PIPE-DISP) BIRD-X)))
+(define
+	BLUE
+		#f
+)
 
-(define (draw-window coords); to-draw
-  (cond
-    [(number? coords) (place-image (text "GAME OVER LOSER LOL" 30 "WHITE") 250 250
-                    (place-image FG 0 250
-                                BG))]
-    [else (place-image BIRD-IMG BIRD-X (coords-by coords)
-                  (place-image FG (coords-gx coords) 250
-                               (place-image PIPE-1 (coords-p1x coords) (coords-p1y coords)
-                                            (place-image PIPE-2 (coords-p2x coords) (coords-p2y coords)
-                                                         BG))))]))
+(define
+	RED
+		#f
+)
+
+(define
+	YELLOW
+		#f
+)
+
+(define
+	MARIO
+		#f
+)
+
+(define
+	LUIGI
+		#f
+)
+
+(define
+	WARIO
+		#f
+)
+
+(define
+	WALUIGI
+		#f
+)
+
+(define
+	canSCORE
+		#t
+)
+
+(define
+	canMOVE
+		#f
+)
+
+(define
+	PLAY-GAME-OVER
+		#t
+)
+
+(define
+	FG-X
+		240 ; TILE WIDTH · 10
+)
+
+(define
+	BIRD-X
+		91
+) ; default x-position of the bird, it does not move horizontally (i.e., this is static.)
+
+(define
+	BIRD-Y
+		258
+) ; starting Y-position of the bird
+
+(define
+	PIPE-1-INIT-X
+		510
+) ; there are two sets of pipes moving on the "conveyor belt." this is the x for the first set...
+
+(define
+	PIPE-1-INIT-Y
+		300
+) ; ...and here is the y...
+
+(define
+	PIPE-2-INIT-X
+		710
+) ; ... and the x for the second set...
+
+(define
+	PIPE-2-INIT-Y
+		500
+) ; ...and the second set's y.
+
+(define
+	RANDOM-LIMIT
+		250
+) ; upper bound randomly generating y-displacement for pipe heights
+
+(define
+	RANDOM-ADDER
+		70
+) ; constant to be added to rand numbers
+
+(define
+	SPEED
+		5
+) ; increments by which we move the pipes
+
+;; ASSETS
+
+(define
+	IMG-DUMMY
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\DUMMY.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/DUMMY.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-GAMEOVER
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\game_over.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/game_over.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-GAMEOVER-SMW-MODE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\game_over_smw.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/game_over_smw.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-GETREADY
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\get_ready.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/get_ready.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-GETREADY-MARIO
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\get_ready_mario.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/get_ready_mario.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-GETREADY-LUIGI
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\get_ready_luigi.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/get_ready_luigi.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-GETREADY-WARIO
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\get_ready_wario.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/get_ready_wario.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-GETREADY-WALUIGI
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\get_ready_waluigi.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/get_ready_waluigi.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-SCOREBOARD
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\scoreboard.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/scoreboard.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-SCOREBOARD-SMW-MODE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\scoreboard_smw.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/scoreboard_smw.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BG-DAY
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\bg_day.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/bg_day.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BG-NIGHT
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\bg_night.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/bg_night.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BG-SMW-MODE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bg_smw.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bg_smw.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-FG
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\ground.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/ground.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-FG-SMW-MODE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\ground_smw.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/ground_smw.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-PIPES
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\pipes.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/pipes.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-PIPES-SMW-MODE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\pipes_smw.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/pipes_smw.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-BLUE-0
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\bird_blue_0.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/bird_blue_0.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-BLUE-1
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\bird_blue_1.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/bird_blue_1.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-BLUE-2
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\bird_blue_2.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/bird_blue_2.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-BLUE
+		(vector-immutable
+			IMG-BIRD-BLUE-0
+			IMG-BIRD-BLUE-1
+			IMG-BIRD-BLUE-2
+		)
+)
+
+(define
+	IMG-BIRD-RED-0
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\bird_red_0.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/bird_red_0.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-RED-1
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\bird_red_1.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/bird_red_1.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-RED-2
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\bird_red_2.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/bird_red_2.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-RED
+		(vector-immutable
+			IMG-BIRD-RED-0
+			IMG-BIRD-RED-1
+			IMG-BIRD-RED-2
+		)
+)
+
+(define
+	IMG-BIRD-YELLOW-0
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\bird_yellow_0.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/bird_yellow_0.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-YELLOW-1
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\bird_yellow_1.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/bird_yellow_1.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-YELLOW-2
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\bird_yellow_2.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/bird_yellow_2.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-YELLOW
+		(vector-immutable
+			IMG-BIRD-YELLOW-0
+			IMG-BIRD-YELLOW-1
+			IMG-BIRD-YELLOW-2
+		)
+)
+
+(define
+	IMG-BIRD-MARIO-0
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_mario_0.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_mario_0.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-MARIO-1
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_mario_1.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_mario_1.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-MARIO-2
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_mario_2.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_mario_2.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-MARIO-DIE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_mario_die.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_mario_die.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-MARIO
+		(vector-immutable
+			IMG-BIRD-MARIO-0
+			IMG-BIRD-MARIO-1
+			IMG-BIRD-MARIO-2
+			IMG-BIRD-MARIO-DIE
+		)
+)
+
+(define
+	IMG-BIRD-LUIGI-0
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_luigi_0.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_luigi_0.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-LUIGI-1
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_luigi_1.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_luigi_1.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-LUIGI-2
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_luigi_2.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_luigi_2.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-LUIGI-DIE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_luigi_die.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_luigi_die.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-LUIGI
+		(vector-immutable
+			IMG-BIRD-LUIGI-0
+			IMG-BIRD-LUIGI-1
+			IMG-BIRD-LUIGI-2
+			IMG-BIRD-LUIGI-DIE
+		)
+)
+
+(define
+	IMG-BIRD-WARIO-0
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_wario_0.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_wario_0.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-WARIO-1
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_wario_1.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_wario_1.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-WARIO-2
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_wario_2.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_wario_2.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-WARIO-DIE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_wario_die.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_wario_die.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-WARIO
+		(vector-immutable
+			IMG-BIRD-WARIO-0
+			IMG-BIRD-WARIO-1
+			IMG-BIRD-WARIO-2
+			IMG-BIRD-WARIO-DIE
+		)
+)
+
+(define
+	IMG-BIRD-WALUIGI-0
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_waluigi_0.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_waluigi_0.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-WALUIGI-1
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_waluigi_1.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_waluigi_1.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-WALUIGI-2
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_waluigi_2.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_waluigi_2.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-WALUIGI-DIE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\bird_waluigi_die.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/bird_waluigi_die.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-BIRD-WALUIGI
+		(vector-immutable
+			IMG-BIRD-WALUIGI-0
+			IMG-BIRD-WALUIGI-1
+			IMG-BIRD-WALUIGI-2
+			IMG-BIRD-WALUIGI-DIE
+		)
+)
+
+(define
+	IMG-MEDAL-10
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\medal_10.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/medal_10.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-MEDAL-20
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\medal_20.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/medal_20.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-MEDAL-30
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\medal_30.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/medal_30.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-MEDAL-40
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\medal_40.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/medal_40.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-MEDAL
+		(vector-immutable
+			IMG-DUMMY
+			IMG-MEDAL-10
+			IMG-MEDAL-20
+			IMG-MEDAL-30
+			IMG-MEDAL-40
+		)
+)
+
+(define
+	IMG-MEDAL-SMW-MODE-10
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\medal_smw_10.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/medal_smw_10.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-MEDAL-SMW-MODE-20
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\medal_smw_20.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/medal_smw_20.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-MEDAL-SMW-MODE-30
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\medal_smw_30.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/medal_smw_30.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-MEDAL-SMW-MODE-40
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\medal_smw_40.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/medal_smw_40.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-MEDAL-SMW-MODE
+		(vector-immutable
+			IMG-DUMMY
+			IMG-MEDAL-SMW-MODE-10
+			IMG-MEDAL-SMW-MODE-20
+			IMG-MEDAL-SMW-MODE-30
+			IMG-MEDAL-SMW-MODE-40
+		)
+)
+
+(define
+	IMG-NEW-HI-SCORE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\new_hiscore.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/new_hiscore.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-TAP
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\tap.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/tap.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-TAP-MARIO
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\tap_mario.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/tap_mario.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-TAP-LUIGI
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\tap_luigi.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/tap_luigi.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-TAP-WARIO
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\tap_wario.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/tap_wario.png"
+				)
+			)
+		)
+)
+
+(define
+	IMG-TAP-WALUIGI
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				(bitmap
+					"assets\\img\\smw\\tap_waluigi.png"
+				)
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				(bitmap
+					"assets/img/smw/tap_waluigi.png"
+				)
+			)
+		)
+)
+
+(define
+	SFX-DIE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				"assets\\sfx\\sfx_die.wav"
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				"assets/sfx/sfx_die.wav"
+			)
+		)
+)
+
+(define
+	SFX-DIE-SMW-MODE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				"assets\\sfx\\smw\\sfx_die_smw.wav"
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				"assets/sfx/smw/sfx_die_smw.wav"
+			)
+		)
+)
+
+(define
+	SFX-HIT
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				"assets\\sfx\\sfx_hit.wav"
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				"assets/sfx/sfx_hit.wav"
+			)
+		)
+)
+
+(define
+	SFX-POINT
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				"assets\\sfx\\sfx_point.wav"
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				"assets/sfx/sfx_point.wav"
+			)
+		)
+)
+
+(define
+	SFX-POINT-SMW-MODE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				"assets\\sfx\\smw\\sfx_point_smw.wav"
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				"assets/sfx/smw/sfx_point_smw.wav"
+			)
+		)
+)
+
+(define
+	SFX-WING
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				"assets\\sfx\\sfx_wing.wav"
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				"assets/sfx/sfx_wing.wav"
+			)
+		)
+)
+
+(define
+	SFX-WING-SMW-MODE
+		(cond
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"C:\\WINDOWS\\system32\\"
+					)
+				) ; WINDOWS
+				"assets\\sfx\\smw\\sfx_wing_smw.wav"
+			)
+			(
+				(equal?
+					(find-system-path
+						'sys-dir
+					)
+					(string->path
+						"/"
+					)
+				) ; LINUX / MAC OS
+				"assets/sfx/smw/sfx_wing_smw.wav"
+			)
+		)
+)
+
+;;
+
+(define
+	CURRENT-FRAME!
+		(lambda
+			dummy
+			(cond
+				(
+					(=
+						CURRENT-FRAME
+						2
+					)
+					(set!
+						CURRENT-FRAME
+						0
+					)
+				)
+				(else
+					(set!
+						CURRENT-FRAME
+						(+
+							CURRENT-FRAME
+							1
+						)
+					)
+				)
+			)
+		)
+)
+
+(define
+	on-NEW-HI-SCORE!
+		(lambda
+			dummy
+			(set!
+				NEW-HI-SCORE
+				#t
+			)
+		)
+)
+
+(define
+	randomize-time
+		(lambda
+			dummy
+			(let
+				(
+					(time
+						(random
+							2
+						)
+					)
+				)
+				(cond
+					(
+						(=
+							time
+							0
+						)
+						(set!
+							DAY
+							#t
+						)
+					)
+					(
+						(=
+							time
+							1
+						)
+						(set!
+							DAY
+							#f
+						)
+					)
+				)
+			)
+		)
+)
+
+(define
+	randomize-color
+		(lambda
+			dummy
+			(let
+				(
+					(color
+						(random
+							3
+						)
+					)
+				)
+				(cond
+					(
+						(=
+							color
+							0
+						)
+						(set!
+							BLUE
+							#t
+						)
+					)
+					(
+						(=
+							color
+							1
+						)
+						(set!
+							RED
+							#t
+						)
+					)
+					(
+						(=
+							color
+							2
+						)
+						(set!
+							YELLOW
+							#t
+						)
+					)
+				)
+			)
+		)
+)
+
+(define
+	randomize-color-SMW-MODE
+		(lambda
+			dummy
+			(let
+				(
+					(MARIO-color
+						(random
+							4
+						)
+					)
+				)
+				(cond
+					(
+						(=
+							MARIO-color
+							0
+						)
+						(set!
+							MARIO
+							#t
+						)
+					)
+					(
+						(=
+							MARIO-color
+							1
+						)
+						(set!
+							LUIGI
+							#t
+						)
+					)
+					(
+						(=
+							MARIO-color
+							2
+						)
+						(set!
+							WARIO
+							#t
+						)
+					)
+					(
+						(=
+							MARIO-color
+							3
+						)
+						(set!
+							WALUIGI
+							#t
+						)
+					)
+				)
+			)
+		)
+)
+
+(define
+	POSITIONS!
+		(lambda
+			dummy
+			(cond
+				(
+					(equal?
+						SMW-MODE
+						#f
+					)
+					(set!
+						IMG-NEW-HI-SCORE-X
+						183
+					)
+					(set!
+						IMG-NEW-HI-SCORE-Y
+						260
+					)
+					(set!
+						SCOREBOARD-SCORE-Y
+							237
+					)
+					(set!
+						SCOREBOARD-HI-SCORE-Y
+							279
+					)
+					(set!
+						IMG-MEDAL-Y
+						259
+					)
+					(set!
+						FG-X
+						240
+					)
+				)
+				(
+					(equal?
+						SMW-MODE
+						#t
+					)
+					(set!
+						IMG-NEW-HI-SCORE-X
+						166
+					)
+					(set!
+						IMG-NEW-HI-SCORE-Y
+						258
+					)
+					(set!
+						SCOREBOARD-SCORE-Y
+						234
+					)
+					(set!
+						SCOREBOARD-HI-SCORE-Y
+						274
+					)
+					(set!
+						IMG-MEDAL-Y
+						254
+					)
+					(set!
+						FG-X
+						320
+					)
+				)
+			)
+		)
+)
+
+(define
+	SCOREBOARD-FONT-HEIGHT!
+		(lambda
+			dummy
+			(if
+				(equal?
+					SMW-MODE
+					#f
+				)
+				(set!
+					SCOREBOARD-FONT-HEIGHT
+					28
+				)
+				(set!
+					SCOREBOARD-FONT-HEIGHT
+					19
+				)
+			)
+		)
+)
+
+(define
+	getIMG-MEDAL
+		(lambda
+			dummy
+			(cond
+				(
+					(equal?
+						SMW-MODE
+						#t
+					)
+					(cond
+						(
+							(<
+								SCORE
+								10
+							)
+							(vector-ref
+								IMG-MEDAL-SMW-MODE
+								0
+							)
+						)
+						(
+							(and
+								(>=
+									SCORE
+									10
+								)
+								(<
+									SCORE
+									20
+								)
+							)
+							(vector-ref
+								IMG-MEDAL-SMW-MODE
+								1
+							)
+						)
+						(
+							(and
+								(>=
+									SCORE
+									20
+								)
+								(<
+									SCORE
+									30
+								)
+							)
+							(vector-ref
+								IMG-MEDAL-SMW-MODE
+								2
+							)
+						)
+						(
+							(and
+								(>=
+									SCORE
+									30
+								)
+								(<
+									SCORE
+									40
+								)
+							)
+							(vector-ref
+								IMG-MEDAL-SMW-MODE
+								3
+							)
+						)
+						(
+							(>=
+								SCORE
+								40
+							)
+							(vector-ref
+								IMG-MEDAL-SMW-MODE
+								4
+							)
+						)
+					)
+				) ; SMW-MODE
+				(
+					(equal?
+						SMW-MODE
+						#f
+					)
+					(cond
+						(
+							(<
+								SCORE
+								10
+							)
+							(vector-ref
+								IMG-MEDAL
+								0
+							)
+						)
+						(
+							(and
+								(>=
+									SCORE
+									10
+								)
+								(<
+									SCORE
+									20
+								)
+							)
+							(vector-ref
+								IMG-MEDAL
+								1
+							)
+						)
+						(
+							(and
+								(>=
+									SCORE
+									20
+								)
+								(<
+									SCORE
+									30
+								)
+							)
+							(vector-ref
+								IMG-MEDAL
+								2
+							)
+						)
+						(
+							(and
+								(>=
+									SCORE
+									30
+								)
+								(<
+									SCORE
+									40
+								)
+							)
+							(vector-ref
+								IMG-MEDAL
+								3
+							)
+						)
+						(
+							(>=
+								SCORE
+								40
+							)
+							(vector-ref
+								IMG-MEDAL
+								4
+							)
+						)
+					)
+				) ; NORMAL
+			)
+		)
+)
+
+(define
+	getIMG-FG
+		(lambda
+			dummy
+			(cond
+				(
+					(equal?
+						SMW-MODE
+						#t
+					)
+					IMG-FG-SMW-MODE
+				) ; SMW-MODE
+				(
+					(equal?
+						SMW-MODE
+						#f
+					)
+					IMG-FG
+				) ; NORMAL
+			)
+		)
+)
+
+(define
+	getIMG-SCOREBOARD
+		(lambda
+			dummy
+			(cond
+				(
+					(equal?
+						SMW-MODE
+						#t
+					)
+					IMG-SCOREBOARD-SMW-MODE
+				) ; SMW-MODE
+				(
+					(equal?
+						SMW-MODE
+						#f
+					)
+					IMG-SCOREBOARD
+				) ; NORMAL
+			)
+		)
+)
+
+(define
+	getIMG-TAP
+		(lambda
+			dummy
+			(if
+				(equal?
+					canMOVE
+					#f
+				)
+				(cond
+					(
+						(equal?
+							SMW-MODE
+							#t
+						)
+						(cond
+							(
+								(equal?
+									MARIO
+									#t
+								)
+								IMG-TAP-MARIO
+							)
+							(
+								(equal?
+									LUIGI
+									#t
+								)
+								IMG-TAP-LUIGI
+							)
+							(
+								(equal?
+									WARIO
+									#t
+								)
+								IMG-TAP-WARIO
+							)
+							(
+								(equal?
+									WALUIGI
+									#t
+								)
+								IMG-TAP-WALUIGI
+							)
+						)
+					) ; SMW-MODE
+					(
+						(equal?
+							SMW-MODE
+							#f
+						)
+						IMG-TAP
+					) ; NORMAL
+				)
+				IMG-DUMMY
+			)
+		)
+)
+
+(define
+	getIMG-GAMEOVER
+		(lambda
+			dummy
+			(if
+				(equal?
+					PLAY-GAME-OVER
+					#t
+				)
+				IMG-DUMMY
+				(cond
+					(
+						(equal?
+							SMW-MODE
+							#t
+						)
+						IMG-GAMEOVER-SMW-MODE
+					) ; SMW-MODE
+					(
+						(equal?
+							SMW-MODE
+							#f
+						)
+						IMG-GAMEOVER
+					) ; NORMAL
+				)
+			)
+		)
+)
+
+(define
+	getIMG-GETREADY
+		(lambda
+			dummy
+			(if
+				(equal?
+					canMOVE
+					#f
+				)
+				(cond
+					(
+						(equal?
+							SMW-MODE
+							#t
+						)
+						(cond
+							(
+								(equal?
+									MARIO
+									#t
+								)
+								IMG-GETREADY-MARIO
+							)
+							(
+								(equal?
+									LUIGI
+									#t
+								)
+								IMG-GETREADY-LUIGI
+							)
+							(
+								(equal?
+									WARIO
+									#t
+								)
+								IMG-GETREADY-WARIO
+							)
+							(
+								(equal?
+									WALUIGI
+									#t
+								)
+								IMG-GETREADY-WALUIGI
+							)
+						)
+					) ; SMW-MODE
+					(
+						(equal?
+							SMW-MODE
+							#f
+						)
+						IMG-GETREADY
+					) ; NORMAL
+				)
+				IMG-DUMMY
+			)
+		)
+)
+
+(define
+	getIMG-NEW-HI-SCORE
+		(lambda
+			dummy
+			(if
+				(equal?
+					NEW-HI-SCORE
+					#t
+				)
+				IMG-NEW-HI-SCORE
+				IMG-DUMMY
+			)
+		)
+)
+
+(define
+	getIMG-BG
+		(lambda
+			dummy
+			(cond
+				(
+					(equal?
+						SMW-MODE
+						#t
+					)
+					IMG-BG-SMW-MODE
+				) ; SMW-MODE
+				(
+					(equal?
+						SMW-MODE
+						#f
+					)
+					(cond
+						(
+							(equal?
+								DAY
+								#t
+							)
+							IMG-BG-DAY
+						)
+						(
+							(equal?
+								DAY
+								#f
+							)
+							IMG-BG-NIGHT
+						)
+					)
+				) ; NORMAL
+			)
+		)
+)
+
+(define
+	getIMG-BIRD
+		(lambda
+			dummy
+			(if
+				PLAY-GAME-OVER
+				(CURRENT-FRAME!)
+			)
+			(cond
+				(
+					(equal?
+						SMW-MODE
+						#t
+					)
+					(cond
+						(
+							(equal?
+								MARIO
+								#t
+							)
+							IMG-BIRD-MARIO
+						)
+						(
+							(equal?
+								LUIGI
+								#t
+							)
+							IMG-BIRD-LUIGI
+						)
+						(
+							(equal?
+								WARIO
+								#t
+							)
+							IMG-BIRD-WARIO
+						)
+						(
+							(equal?
+								WALUIGI
+								#t
+							)
+							IMG-BIRD-WALUIGI
+						)
+					)
+				) ; SMW-MODE
+				(
+					(equal?
+						SMW-MODE
+						#f
+					)
+					(cond
+						(
+							(equal?
+								BLUE
+								#t
+							)
+							IMG-BIRD-BLUE
+						)
+						(
+							(equal?
+								RED
+								#t
+							)
+							IMG-BIRD-RED
+						)
+						(
+							(equal?
+								YELLOW
+								#t
+							)
+							IMG-BIRD-YELLOW
+						)
+					)
+				) ; NORMAL
+			)
+		)
+)
+
+(define
+	getIMG-PIPES
+		(lambda
+			dummy
+			(cond
+				(
+					(equal?
+						SMW-MODE
+						#t
+					)
+					IMG-PIPES-SMW-MODE
+				) ; SMW-MODE
+				(
+					(equal?
+						SMW-MODE
+						#f
+					)
+					IMG-PIPES
+				) ; NORMAL
+			)
+		)
+)
+
+(define
+	getSFX-DIE
+		(lambda
+			dummy
+			(cond
+				(
+					(equal?
+						SMW-MODE
+						#t
+					)
+					SFX-DIE-SMW-MODE
+				) ; SMW-MODE
+				(
+					(equal?
+						SMW-MODE
+						#f
+					)
+					SFX-DIE
+				) ; NORMAL
+			)
+		)
+)
+
+(define
+	getSFX-POINT
+		(lambda
+			dummy
+			(cond
+				(
+					(equal?
+						SMW-MODE
+						#t
+					)
+					SFX-POINT-SMW-MODE
+				) ; SMW-MODE
+				(
+					(equal?
+						SMW-MODE
+						#f
+					)
+					SFX-POINT
+				) ; NORMAL
+			)
+		)
+)
+
+(define
+	getSFX-WING
+		(lambda
+			dummy
+			(cond
+				(
+					(equal?
+						SMW-MODE
+						#t
+					)
+					SFX-WING-SMW-MODE
+				) ; SMW-MODE
+				(
+					(equal?
+						SMW-MODE
+						#f
+					)
+					SFX-WING
+				) ; NORMAL
+			)
+		)
+)
+
+(define
+	SCORE!
+		(lambda
+			dummy
+			(set!
+				SCORE
+				(+
+					SCORE
+					1
+				)
+			)
+			(play-sound
+				(getSFX-POINT)
+				#t
+			)
+			(set!
+				canSCORE
+				#f
+			)
+		)
+)
+
+(define
+	on-canMOVE!
+		(lambda
+			dummy
+			(set!
+				canMOVE
+				#t
+			)
+		)
+)
+
+(define
+	off-canMOVE!
+		(lambda
+			dummy
+			(set!
+				canMOVE
+				#f
+			)
+		)
+)
+
+(define
+	off-PLAY-GAME-OVER!
+		(lambda
+			dummy
+			(set!
+				PLAY-GAME-OVER
+				#f
+			)
+			(if
+				(equal?
+					SMW-MODE
+					#t
+				)
+				(set!
+					CURRENT-FRAME
+					3
+				)
+			)
+		)
+)
+
+(define
+	(Dmax
+		x1
+		y1
+		x2
+		y2
+	)
+		(max
+			(abs
+				(-
+					x2
+					x1
+				)
+			)
+			(abs
+				(-
+					y2
+					y1
+				)
+			)
+		)
+)
+
+(define
+	load-HI-SCORE
+		(lambda
+			dummy
+			(define
+				port
+					(open-input-file
+						"hi-score.erableto"
+					)
+			)
+			(let
+				(
+					(HI-SCORE-from-file
+						(read
+							port
+						)
+					)
+				)
+				(begin
+					(close-input-port port)
+					HI-SCORE-from-file
+				)
+			)
+		)
+)
+
+(define
+	save-HI-SCORE
+		(lambda
+			dummy
+			(define
+				port
+					(open-output-file
+						"hi-score.erableto"
+						'truncate/replace
+					)
+			)
+			(display
+				HI-SCORE
+				port
+			)
+			(newline
+				port
+			)
+			(close-output-port
+				port
+			)
+		)
+)
+
+(define
+	HI-SCORE!
+		(lambda
+			dummy
+			(set!
+				HI-SCORE
+				(load-HI-SCORE)
+			)
+			(cond
+				(
+					(>
+						SCORE
+						HI-SCORE
+					)
+					(set!
+						HI-SCORE
+						SCORE
+					)
+					(on-NEW-HI-SCORE!)
+				)
+			)
+			(save-HI-SCORE)
+		)
+)
+
+(define
+	reset
+		(lambda
+			dummy
+			(set!
+				RED
+				#f
+			)
+			(set!
+				YELLOW
+				#f
+			)
+			(set!
+				BLUE
+				#f
+			)
+			(set!
+				MARIO
+				#f
+			)
+			(set!
+				LUIGI
+				#f
+			)
+			(set!
+				WARIO
+				#f
+			)
+			(set!
+				WALUIGI
+				#f
+			)
+			(if
+				(equal?
+					SMW-MODE
+					#t
+				)
+				(randomize-color-SMW-MODE)
+				(randomize-color)
+			)
+			(randomize-time)
+			(POSITIONS!)
+			(SCOREBOARD-FONT-HEIGHT!)
+			(off-canMOVE!)
+			(set!
+				SCORE
+				0
+			)
+			(set!
+				canSCORE
+				#t
+			)
+			(set!
+				PLAY-GAME-OVER
+				#t
+			)
+			(set!
+				CURRENT-FRAME
+				0
+			)
+			(set!
+				NEW-HI-SCORE
+				#f
+			)
+			(set!
+				BIRD-X
+				91
+			)
+			(set!
+				BIRD-Y
+				258
+			)
+			(set!
+				LAST-PIPE-1-X-IN-SCREEN
+				510
+			)
+		)
+)
+
+(define
+	(flappy-bird
+		INIT-WINDOW
+		modeMARIO
+	)
+		(set!
+			SMW-MODE
+			modeMARIO
+		)
+		(reset)
+		(big-bang
+			(make-coords
+				BIRD-Y ; by
+				FG-X ; gx
+				PIPE-1-INIT-X ; p1x
+				(+
+					(random
+						RANDOM-LIMIT
+					)
+					RANDOM-ADDER
+				) ; p1y
+				PIPE-2-INIT-X ; p2x
+				(+
+					(random
+						RANDOM-LIMIT
+					)
+					RANDOM-ADDER
+				) ; p2y
+				1 ; gravity
+				#f ; collision
+			)
+			[on-tick
+				move-window
+			]
+			[on-key
+				move-bird
+			]
+			[to-draw
+				draw-window
+			]
+			[name
+				"Flappy Bird"
+			]
+		)
+)
+
+(define
+	(move-bird
+		coords
+		ke
+	)
+		(cond
+			[
+				(and
+					(equal?
+						PLAY-GAME-OVER
+						#t
+					)
+					(key=?
+						ke
+						" "
+					)
+					(not
+						(collision?
+							coords
+						)
+					)
+					
+				)
+					(on-canMOVE!)
+					(play-sound
+						(getSFX-WING)
+						#t
+					)
+					(if
+						(>
+							(coords-by
+								coords
+							)
+							12
+						)
+						(make-coords
+							(-
+								(coords-by
+									coords
+								)
+								50
+							) ; by
+							(coords-gx
+								coords
+							) ; gx
+							(coords-p1x
+								coords
+							) ; p1x
+							(coords-p1y
+								coords
+							) ; p1y
+							(coords-p2x
+								coords
+							) ; p2x
+							(coords-p2y
+								coords
+							) ; p2y
+							1 ; gravity
+							#f ; collision
+						)
+						(make-coords
+							12 ; by
+							(coords-gx
+								coords
+							) ; gx
+							(coords-p1x
+								coords
+							) ; p1x
+							(coords-p1y
+								coords
+							) ; p1y
+							(coords-p2x
+								coords
+							) ; p2x
+							(coords-p2y
+								coords
+							) ; p2y
+							1 ; gravity
+							#f ; collision
+						)
+					)
+			]
+			[
+				else
+					coords
+			]
+		)
+)
+
+(define
+	(move-window
+		coords
+	) ; on-tick
+		(if
+			canMOVE
+			(cond
+				[
+					(collision?
+						coords
+					)
+					(if
+						(<
+							(coords-by
+								coords
+							)
+							GROUND-SURFACE
+						)
+						(make-coords
+							(+
+								(coords-by
+									coords
+								)
+								(*
+									(coords-gravity
+										coords)
+									1
+								)
+							) ; by
+							(coords-gx
+								coords
+							) ; gx
+							(coords-p1x
+								coords
+							) ; p1x
+							(coords-p1y
+								coords
+							) ; p1y
+							(coords-p2x
+								coords
+							) ; p2x
+							(coords-p2y
+								coords
+							) ; p2y
+							(+
+								(coords-gravity
+									coords
+								)
+								1
+							)
+							#t ; collision
+						)
+						(if
+							(equal?
+								SMW-MODE
+								#f
+							)
+							(make-coords
+								GROUND-SURFACE ; by
+								(coords-gx
+									coords
+								) ; gx
+								(coords-p1x
+									coords
+								) ; p1x
+								(coords-p1y
+									coords
+								) ; p1y
+								(coords-p2x
+									coords
+								) ; p2x
+								(coords-p2y
+									coords
+								) ; p2y
+								(+
+									(coords-gravity
+										coords
+									)
+									1
+								)
+								#t ; collision
+							)
+							(if
+								(<=
+									(coords-by
+										coords
+									)
+									1000
+								)
+								(make-coords
+									(+
+										(coords-by
+											coords
+										)
+										(*
+											(coords-gravity
+												coords)
+											1
+										)
+									) ; by
+									(coords-gx
+										coords
+									) ; gx
+									(coords-p1x
+										coords
+									) ; p1x
+									(coords-p1y
+										coords
+									) ; p1y
+									(coords-p2x
+										coords
+									) ; p2x
+									(coords-p2y
+										coords
+									) ; p2y
+									(+
+										(coords-gravity
+											coords
+										)
+										1
+									)
+									#t ; collision
+								)
+								(make-coords
+									1000 ; by
+									(coords-gx
+										coords
+									) ; gx
+									(coords-p1x
+										coords
+									) ; p1x
+									(coords-p1y
+										coords
+									) ; p1y
+									(coords-p2x
+										coords
+									) ; p2x
+									(coords-p2y
+										coords
+									) ; p2y
+									0
+									#t ; collision
+								)
+							)
+						)
+					)
+				]
+				[
+					else
+						(if
+							(<
+								(coords-by
+									coords
+								)
+								GROUND-SURFACE
+							)
+							(make-coords
+								(+
+									(coords-by
+										coords
+									)
+									(*
+										(coords-gravity
+											coords)
+										1
+									)
+								) ; by
+								(ground-scroller
+									(coords-gx
+										coords
+									)
+								) ; gx
+								(pipe-helper
+									(coords-p1x
+										coords
+									)
+								) ; p1x
+								(randomize-y
+									(coords-p1x
+										coords
+									)
+									(coords-p1y
+										coords
+									)
+								) ; p1y
+								(+
+									LAST-PIPE-1-X-IN-SCREEN
+									200
+								)
+								; p2x
+								(randomize-y
+									(coords-p2x
+										coords
+									)
+									(coords-p2y
+										coords
+									)
+								) ; p2y
+								(+
+									(coords-gravity
+										coords
+									)
+									1
+								)
+								#f ; collision
+							)
+						)
+				]
+			)
+			(make-coords
+				(coords-by
+					coords
+				) ; by
+				(ground-scroller
+					(coords-gx
+						coords
+					)
+				) ; gx
+				(pipe-helper
+					(coords-p1x
+						coords
+					)
+				) ; p1x
+				(randomize-y
+					(coords-p1x
+						coords
+					)
+					(coords-p1y
+						coords
+					)
+				) ; p1y
+				(+
+					LAST-PIPE-1-X-IN-SCREEN
+					200
+				)
+				; p2x
+				(randomize-y
+					(coords-p2x
+						coords
+					)
+					(coords-p2y
+						coords
+					)
+				) ; p2y
+				0
+				#f ; collision
+			)
+		)
+)
+
+(define
+	(pipe-helper
+		x
+	) ; on-tick/h
+		(cond
+			(canMOVE
+				(if
+					(=
+						LAST-PIPE-1-X-IN-SCREEN
+						-250
+					)
+					(set!
+						LAST-PIPE-1-X-IN-SCREEN
+						(-
+							x
+							SPEED
+						)
+					)
+					(set!
+						LAST-PIPE-1-X-IN-SCREEN
+						(-
+							LAST-PIPE-1-X-IN-SCREEN
+							SPEED
+						)
+					)
+				)
+				(if
+					(=
+						-50
+						x
+					)
+					(if
+						(>=
+							SCORE
+							1
+						)
+						355
+						PIPE-1-INIT-X
+					)
+					(-
+						x
+						SPEED
+					)
+				)
+			)
+			(else
+				x
+			)
+		)
+)
+
+(define
+	(randomize-y
+		x
+		y
+	)
+		(if
+			(=
+				-50
+				x
+			)
+				(+
+					(random
+						RANDOM-LIMIT
+					)
+					RANDOM-ADDER
+				)
+			y
+		)
+)
+
+(define
+	(ground-scroller
+		x
+	)
+		(if
+			(<=
+				(-
+					x
+					SPEED
+				)
+				0
+			)
+				FG-X
+			(-
+				x
+				SPEED
+			)
+		)
+)
+
+(define
+	(collision?
+		coords
+	)
+		(if
+			(or
+				(=
+					(-
+						(+
+							(coords-p1x
+								coords
+							)
+							8
+						)
+						SPEED
+					)
+					93
+				)
+				(=
+					(-
+						(+
+							(coords-p2x
+								coords
+							)
+							8
+						)
+						SPEED
+					)
+					93
+				)
+			)
+			(if
+				canSCORE
+				(SCORE!)
+			)
+			(set!
+				canSCORE
+				#t
+			)
+		)
+		(if
+			(equal?
+				PLAY-GAME-OVER
+				#f
+			)
+			#t
+			(if
+				(or
+					(<
+						(Dmax
+							BIRD-X
+							(coords-by
+								coords
+							)
+							(coords-p1x
+								coords
+							)
+							(coords-p1y
+								coords
+							)
+						)
+						51
+					)
+					(<
+						(Dmax
+							BIRD-X
+							(coords-by
+								coords
+							)
+							(coords-p2x
+								coords
+							)
+							(coords-p2y
+								coords
+							)
+						)
+						51
+					)
+				)
+				#f
+				(or
+					(and
+						(<=
+							(-
+								(-
+									(coords-p1x
+										coords
+									)
+									38
+								)
+								SPEED
+							)
+							BIRD-X
+						)
+						(>=
+							(+
+								(+
+									(coords-p1x
+										coords
+									)
+									38
+								)
+								SPEED
+							)
+							BIRD-X
+						)
+					)
+					(and
+						(<=
+							(-
+								(-
+									(coords-p2x
+										coords
+									)
+									38
+								)
+								SPEED
+							)
+							BIRD-X
+						)
+						(>=
+							(+
+								(+
+									(coords-p2x
+										coords
+									)
+									38
+								)
+								SPEED
+							)
+							BIRD-X
+						)
+					)
+					(>=
+						(coords-by
+							coords
+						)
+						GROUND-SURFACE
+					)
+				)
+			)
+		)
+)
+
+(define
+	(draw-window
+		coords
+	) ; to-draw
+		(cond
+			[
+				(coords-collision
+					coords
+				)
+					(if
+						(and
+							(equal?
+								SMW-MODE
+								#f
+							)
+							(equal?
+								PLAY-GAME-OVER
+								#t
+							)
+						)
+						(play-sound
+							SFX-HIT
+							#t
+						)
+					)
+					(if
+						(and
+							(equal?
+								PLAY-GAME-OVER
+								#t
+							)
+							(or
+								(<
+									(coords-by
+										coords
+									)
+									GROUND-SURFACE
+								)
+								(equal?
+									SMW-MODE
+									#t
+								)
+							)
+						)
+						(play-sound
+							(getSFX-DIE)
+							#t
+						)
+					)
+					(if
+						(equal?
+							PLAY-GAME-OVER
+							#t
+						)
+						(HI-SCORE!)
+					)
+					(off-PLAY-GAME-OVER!)
+					(place-image
+						(getIMG-MEDAL)
+						79
+						IMG-MEDAL-Y
+						(place-image
+							(getIMG-NEW-HI-SCORE)
+							IMG-NEW-HI-SCORE-X
+							IMG-NEW-HI-SCORE-Y
+							(place-image
+								(text/font
+									(format
+										"~v"
+										SCORE
+									)
+									SCOREBOARD-FONT-HEIGHT
+									"WHITE"
+									#f
+									'decorative
+									'normal
+									'bold
+									#f
+								)
+								209 ;!; 144 ;!;
+								SCOREBOARD-SCORE-Y ;!; 151 ;!;
+								(place-image
+									(text/font
+										(format
+											"~v"
+											HI-SCORE
+										)
+										SCOREBOARD-FONT-HEIGHT
+										"WHITE"
+										#f
+										'decorative
+										'normal
+										'bold
+										#f
+									)
+									209 ;!; 144 ;!;
+									SCOREBOARD-HI-SCORE-Y ;!; 151 ;!;
+									(place-image
+										(getIMG-GAMEOVER)
+										144 ;!; 144 ;!;
+										157 ;!; 151 ;!;
+										(place-image
+											(getIMG-SCOREBOARD)
+											144 ;!; 144 ;!;
+											256 ;!; 256 ;!;
+											(place-image
+												(vector-ref
+													(getIMG-BIRD)
+													CURRENT-FRAME
+												)
+												BIRD-X
+												(coords-by
+													coords
+												)
+												(place-image
+													(getIMG-FG)
+													(coords-gx
+														coords
+													)
+													456 ;!; 456 ;!;
+													(place-image
+														(getIMG-PIPES)
+														(coords-p1x
+															coords
+														)
+														(coords-p1y
+															coords
+														)
+														(place-image
+															(getIMG-PIPES)
+															(coords-p2x
+																coords
+															)
+															(coords-p2y
+																coords
+															)
+															(getIMG-BG)
+														)
+													)
+												)
+											)
+										)
+									)
+								)
+							)
+						)
+					)
+			]
+			[
+				else
+					(place-image
+						(text/font
+							(format
+								"~v"
+								SCORE
+							)
+							50
+							"WHITE"
+							#f
+							'decorative
+							'normal
+							'bold
+							#f
+						)
+						144 ;!; 144 ;!;
+						100 ;!; 151 ;!;
+						(place-image
+							(getIMG-GETREADY)
+							144 ;!; 144 ;!;
+							177 ;!; 151 ;!;
+							(place-image
+								(vector-ref
+									(getIMG-BIRD)
+									CURRENT-FRAME
+								)
+								BIRD-X
+								(coords-by
+									coords
+								)
+								(place-image
+									(getIMG-TAP)
+									145 ;!; 144 ;!;
+									256 ;!; 151 ;!;
+									(place-image
+										(getIMG-FG)
+										(coords-gx
+											coords
+										)
+										456
+										(place-image
+											(getIMG-PIPES)
+											(coords-p1x
+												coords
+											)
+											(coords-p1y
+												coords
+											)
+											(place-image
+												(getIMG-PIPES)
+												(coords-p2x
+													coords
+												)
+												(coords-p2y
+													coords
+												)
+												(getIMG-BG)
+											)
+										)
+									)
+								)
+							)
+						)
+					)
+			]
+		)
+)
