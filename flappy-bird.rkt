@@ -3400,8 +3400,8 @@
 			[on-tick
 				move-window
 			]
-			[on-release
-				move-bird ; on-key = EASY MODE ; on-release = NORMAL/HARD MODE
+			[on-key
+				move-bird
 			]
 			[to-draw
 				draw-window
