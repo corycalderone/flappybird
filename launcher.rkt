@@ -26,14 +26,6 @@
 						"/"
 					)
 				) ; LINUX / MAC OS
-				(equal?
-					(find-system-path
-						'sys-dir
-					)
-					(string->path
-						"/"
-					)
-				) ; LINUX / MAC OS
 				(make-object
 					bitmap%
 					"assets/img/title.png"

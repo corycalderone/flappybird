@@ -219,14 +219,6 @@
 						"/"
 					)
 				) ; LINUX / MAC OS
-				(equal?
-					(find-system-path
-						'sys-dir
-					)
-					(string->path
-						"/"
-					)
-				) ; LINUX / MAC OS
 				(bitmap
 					"assets/img/DUMMY.png"
 				)
